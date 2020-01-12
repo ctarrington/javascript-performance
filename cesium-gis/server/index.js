@@ -20,14 +20,38 @@ http.listen(PORT, function(){
     console.log('listening on *:'+PORT);
 });
 
+
 const initializeData = () => {
-  const theData = [{id: 1, lon: -80, lat: 25}];
+    const initialLat = 25;
+    const initialLon = -80;
+    const deltaRange = 0.05;
+
+    const context = {
+        data: [],
+        deltaLats:[],
+        deltaLons: [],
+        currentId: 0,
+    };
 
   const tick = () => {
 
-      theData[0].lat += 0.01;
-      return theData;
-  }
+      context.data.forEach((track, index) => {
+         track.lat += context.deltaLats[index];
+         track.lon += context.deltaLons[index];
+      });
+
+      context.data.push({
+          id: context.currentId++,
+          lon: initialLon,
+          lat: initialLat,
+      });
+
+
+      context.deltaLons.push(Math.random()*deltaRange - deltaRange/2);
+      context.deltaLats.push(Math.random()*deltaRange - deltaRange/2);
+
+      return context.data;
+  };
 
   return {
       tick,
@@ -37,4 +61,4 @@ const initializeData = () => {
 const data = initializeData();
 setInterval(() => {
     io.emit('tracks', data.tick());
-}, 1000);
+}, 33);
