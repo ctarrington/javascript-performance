@@ -20,10 +20,15 @@ class Field {
 
 export class Alien {
   id: number;
-  fields: Field[] = [new Field("height"), new Field("weight")];
+  fields: Field[];
 
-  constructor(id: number) {
+  constructor(id: number, fieldCount: number) {
     this.id = id;
+    this.fields = [];
+
+    for (let index=0; index < fieldCount; index++) {
+      this.fields.push(new Field("Field " + index));
+    }
   }
 
   tick() {
