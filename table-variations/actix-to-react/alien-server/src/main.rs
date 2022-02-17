@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::sync::Mutex;
 use std::time::Duration;
-use std::{cmp, thread, time};
+use std::{thread, time};
 
 use rand::Rng;
 
@@ -48,6 +48,12 @@ impl Alien {
 
         Alien { id, fields }
     }
+
+    fn tick(&mut self) {
+        for field in &mut self.fields {
+            field.tick();
+        }
+    }
 }
 
 /// calculated state can have information that is not shared with the UI
@@ -65,7 +71,14 @@ impl CalculatedState {
     }
 
     fn tick(&mut self) {
-        self.aliens.push(Alien::new(self.tick_count, 10));
+        if self.aliens.len() < 100 {
+            self.aliens.push(Alien::new(self.tick_count, 10));
+        }
+
+        for alien in &mut self.aliens {
+            alien.tick();
+        }
+
         self.tick_count = self.tick_count + 1;
     }
 }
@@ -91,7 +104,7 @@ struct WrappedState {
     current: Mutex<SharedState>,
 }
 
-#[get("/")]
+#[get("/api/wide")]
 async fn get_current(data: web::Data<WrappedState>) -> impl Responder {
     // just using the derefed (unpacked) SharedState in the to_string works fine
     // assigning it to a temp variable gives move issues
