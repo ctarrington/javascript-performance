@@ -1,0 +1,7 @@
+target/
+dist/
+.idea/
+output/
+*.wasm
+.appveyor.yml
+.travis.yml
