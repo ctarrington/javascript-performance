@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useState } from "react";
 import "./App.css";
 import { Alien, FieldCriteria } from "./Alien";
 import { useInterval } from "usehooks-ts";
