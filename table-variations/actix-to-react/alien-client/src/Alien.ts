@@ -12,10 +12,11 @@ class Field {
     this.value = getRandomInRange(0, 100);
     this.derivative = getRandomInRange(-1.5, 1.5);
   }
+}
 
-  tick() {
-    this.value = this.value + this.derivative;
-  }
+export class FieldCriteria {
+  minimum: number | null = null;
+  maximum: number | null = null;
 }
 
 export class Alien {
@@ -28,12 +29,6 @@ export class Alien {
 
     for (let index=0; index < fieldCount; index++) {
       this.fields.push(new Field("Field " + index));
-    }
-  }
-
-  tick() {
-    for (let field of this.fields) {
-      field.tick();
     }
   }
 }

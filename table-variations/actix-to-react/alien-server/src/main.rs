@@ -10,6 +10,11 @@ use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 
 use serde::Serialize;
 
+const PERIOD: u64 = 1;
+const MAX_ALIEN_COUNT: usize = 100_000;
+const GROWTH_SIZE: usize = 1000;
+const FIELD_COUNT: usize = 20;
+
 #[derive(Serialize, Clone)]
 struct Field {
     value: f32,
@@ -50,8 +55,11 @@ impl Alien {
     }
 
     fn tick(&mut self) {
-        for field in &mut self.fields {
-            field.tick();
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0..=100) > 90 {
+            for field in &mut self.fields {
+                field.tick();
+            }
         }
     }
 }
@@ -71,8 +79,11 @@ impl CalculatedState {
     }
 
     fn tick(&mut self) {
-        if self.aliens.len() < 100 {
-            self.aliens.push(Alien::new(self.tick_count, 10));
+        if self.aliens.len() < MAX_ALIEN_COUNT {
+            for index in 0..GROWTH_SIZE {
+                let alien_id = self.tick_count * GROWTH_SIZE + index;
+                self.aliens.push(Alien::new(alien_id, FIELD_COUNT));
+            }
         }
 
         for alien in &mut self.aliens {
@@ -142,7 +153,7 @@ async fn main() -> std::io::Result<()> {
             }
 
             let elapsed = time::Instant::now() - begin;
-            let goal = Duration::from_secs(1);
+            let goal = Duration::from_secs(PERIOD);
             let pause: Duration = if elapsed > goal {
                 println!(
                     "warning: falling behind in update loop: {:?} > {:?}",
