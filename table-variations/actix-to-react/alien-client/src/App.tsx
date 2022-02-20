@@ -1,7 +1,7 @@
-import React, { ChangeEvent, useState } from "react";
+import React, {ChangeEvent, useEffect, useState} from "react";
 import "./App.css";
-import { Alien, FieldCriteria } from "./Alien";
 import { useInterval } from "usehooks-ts";
+import { Alien, FieldCriteria } from "./Alien";
 
 const PAGE_SIZE = 20;
 const PERIOD = 1;
@@ -13,13 +13,14 @@ function App() {
   const [tick, setTick] = useState<number>(0);
   const [criteria, setCriteria] = useState<FieldCriteria[]>([]);
 
+  const worker = new Worker('/fetch.worker.js');
   useInterval(() => {
-    fetch("/api/wide")
-      .then((response) => response.json())
-      .then((data) => {
-        setAliens(data.aliens);
-        setTick(data.tick_count);
-      });
+    worker.postMessage('this is a test message to the worker');
+    worker.addEventListener('message', message => {
+      const {data} = message;
+      setAliens(data.aliens);
+      setTick(data.tick_count);
+    });
   }, PERIOD * 1000);
 
   if (!aliens || aliens.length === 0) {
