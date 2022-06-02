@@ -4,6 +4,7 @@ import com.github.ctarrington.model.DataGenerator;
 import com.github.ctarrington.model.Row;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -12,6 +13,7 @@ import com.github.ctarrington.model.Column;
 import java.util.List;
 
 @SpringBootApplication
+@CrossOrigin
 @RestController
 public class RestApplication {
     private static int tick = 0;
