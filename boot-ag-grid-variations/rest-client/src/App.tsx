@@ -5,6 +5,7 @@ import { AgGridReact } from "ag-grid-react";
 
 import "ag-grid-community/dist/styles/ag-grid.css";
 import "ag-grid-community/dist/styles/ag-theme-alpine.css";
+import { GetRowIdParams, GridOptions } from "ag-grid-community";
 
 const baseURL = "http://localhost:8080/";
 const columnsURL = baseURL + "columns";
@@ -12,6 +13,24 @@ const valuesURL = baseURL + "values";
 
 function cleanseColumnName(raw: string) {
   return raw.replace(/[^a-zA-Z]/g, "");
+}
+
+function stringAsNumberComparator(rawA: string, rawB: string) {
+  const valueA = Number(rawA);
+  const valueB = Number(rawB);
+
+  if (isNaN(valueA) && isNaN(valueB)) {
+    return 0;
+  }
+
+  if (isNaN(valueA)) {
+    return -1;
+  }
+  if (isNaN(valueB)) {
+    return 1;
+  }
+
+  return valueA - valueB;
 }
 
 function App() {
@@ -26,7 +45,17 @@ function App() {
       .then((data) => {
         const defs = data.map((column: any) => {
           const { name, type } = column;
-          return { field: cleanseColumnName(name), headerName: name };
+          const comparator =
+            type === "number" ? stringAsNumberComparator : null;
+          const filter =
+            type === "number" ? "agNumberColumnFilter" : "agTextColumnFilter";
+          return {
+            field: cleanseColumnName(name),
+            headerName: name,
+            sortable: true,
+            comparator,
+            filter,
+          };
         });
         setColumnDefs(defs);
 
@@ -51,18 +80,29 @@ function App() {
         });
         setRowData(rd);
       });
-  }, [tick]);
+  }, [orderedColumnNames, tick]);
 
   useInterval(() => {
     setTick(tick + 1);
   }, 1000);
+
+  const gridOptions: GridOptions = {
+    columnDefs: columnDefs,
+    getRowId: (params: GetRowIdParams) => {
+      return params.data.ID;
+    },
+  };
 
   return (
     <div className="App">
       <div>{columnDefs.length}</div>
       <div>{rowData.length}</div>
       <div className="ag-theme-alpine" style={{ height: 400, width: 600 }}>
-        <AgGridReact rowData={rowData} columnDefs={columnDefs} />
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={columnDefs}
+          gridOptions={gridOptions}
+        />
       </div>
     </div>
   );

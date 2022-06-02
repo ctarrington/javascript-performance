@@ -9,6 +9,7 @@ public class DataGenerator {
     private static final List<String> colors = Arrays.asList("Red", "Blue", "Green", "Brown", "Orange");
     private static List<Column> makeDefinitions() {
         List<Column> definitions = new ArrayList<>();
+        definitions.add(new IDColumn("ID", "number"));
         definitions.add(new ListBasedColumn("Hair Color", "string", colors, 2));
         definitions.add(new ListBasedColumn("Eye Color", "string", colors, 0));
         definitions.add(new NoisyNumericColumn("Weight", "number", 100));
