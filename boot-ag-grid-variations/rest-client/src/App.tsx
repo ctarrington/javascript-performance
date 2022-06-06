@@ -12,7 +12,7 @@ const columnsURL = baseURL + "columns";
 const valuesURL = baseURL + "values";
 
 function cleanseColumnName(raw: string) {
-  return raw.replace(/[^a-zA-Z]/g, "");
+  return raw.replace(/[^a-zA-Z\d]/g, "");
 }
 
 function stringAsNumberComparator(rawA: string, rawB: string) {
