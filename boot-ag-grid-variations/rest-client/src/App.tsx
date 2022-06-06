@@ -49,6 +49,7 @@ function App() {
             type === "number" ? stringAsNumberComparator : null;
           const filter =
             type === "number" ? "agNumberColumnFilter" : "agTextColumnFilter";
+
           return {
             field: cleanseColumnName(name),
             headerName: name,
@@ -57,8 +58,8 @@ function App() {
             filter,
           };
         });
-        setColumnDefs(defs);
 
+        setColumnDefs(defs);
         setOrderedColumnNames(
           data.map((column: any) => cleanseColumnName(column.name))
         );

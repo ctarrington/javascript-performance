@@ -30,7 +30,6 @@ public class DataGenerator {
             rows.add(row);
         }
 
-
         return rows;
     }
 

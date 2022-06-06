@@ -30,6 +30,7 @@ public class RestApplication {
     @GetMapping("/values")
     public List<Row> rows() {
         tick++;
-        return DataGenerator.getRows(tick, tick);
+        final int rowCount = Math.min(20*1000, 100 * tick);
+        return DataGenerator.getRows(tick, rowCount);
     }
 }
