@@ -79,7 +79,10 @@ function App() {
 
           return rowObject;
         });
-        setRowData(rd);
+
+        if (rd.length > 0 && rd[0].ID) {
+          setRowData(rd);
+        }
       });
   }, [orderedColumnNames, tick]);
 
@@ -90,6 +93,9 @@ function App() {
   const gridOptions: GridOptions = {
     columnDefs: columnDefs,
     getRowId: (params: GetRowIdParams) => {
+      if (params.data.ID === undefined) {
+        console.log("ID is undefined for ", params.data);
+      }
       return params.data.ID;
     },
   };
@@ -98,7 +104,7 @@ function App() {
     <div className="App">
       <div>{columnDefs.length}</div>
       <div>{rowData.length}</div>
-      <div className="ag-theme-alpine" style={{ height: 400, width: 600 }}>
+      <div className="ag-theme-alpine" style={{ height: 400, width: 800 }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
