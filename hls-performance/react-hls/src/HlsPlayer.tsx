@@ -1,36 +1,44 @@
-import {useEffect, useRef} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 interface Props {
-    source: string;
+  source: string;
 }
 
-export function HlsPlayer({source}: Props) {
-    const videoRef = useRef<HTMLVideoElement>(null);
+export function HlsPlayer({ source }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [width, setWidth] = useState(300);
 
-    useEffect(() => {
-        const hls = new Hls({
-            "debug": true
-        });
+  useEffect(() => {
+    const hls = new Hls({
+      debug: true,
+    });
 
-        if (videoRef.current && Hls.isSupported()) {
-            hls.log = true;
-            hls.loadSource(source);
-            hls.attachMedia(videoRef.current)
-            hls.on(Hls.Events.ERROR, (err) => {
-                console.log(err)
-           });
-            hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-                videoRef.current?.play();
-            });
-        } else {
-            console.log('HLS not supported');
-        }
-    }, [videoRef]);
-    return (
-        <div>
-        <h1>HLS Player Component</h1>
-            <video ref={videoRef} controls={true} />
-        </div>
-    );
+    if (videoRef.current && Hls.isSupported()) {
+      hls.log = true;
+      hls.loadSource(source);
+      hls.attachMedia(videoRef.current);
+      hls.on(Hls.Events.ERROR, (err) => {
+        console.log(err);
+      });
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        videoRef.current?.play();
+      });
+    } else {
+      console.log("HLS not supported");
+    }
+  }, [videoRef]);
+
+  const bumpWidth = useCallback(() => {
+    const newWidth = width < 800 ? width + 100 : 300;
+    setWidth(newWidth);
+  }, [setWidth, width]);
+
+  const bumpSymbol = width < 800 ? "+" : "↺";
+  return (
+    <div className="player small">
+      <video width={width} ref={videoRef} controls={true} />
+      <button onClick={bumpWidth}>{bumpSymbol}</button>
+    </div>
+  );
 }
