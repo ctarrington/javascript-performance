@@ -15,7 +15,6 @@ export function HlsPlayer({ source }: Props) {
     });
 
     if (videoRef.current && Hls.isSupported()) {
-      hls.log = true;
       hls.loadSource(source);
       hls.attachMedia(videoRef.current);
       hls.on(Hls.Events.ERROR, (err) => {
