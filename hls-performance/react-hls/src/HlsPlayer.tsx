@@ -36,7 +36,7 @@ export function HlsPlayer({ source }: Props) {
   const bumpSymbol = width < 800 ? "+" : "↺";
   return (
     <div className="player small">
-      <video width={width} ref={videoRef} controls={true} />
+      <video width={width} ref={videoRef} controls={true} loop muted />
       <button onClick={bumpWidth}>{bumpSymbol}</button>
     </div>
   );
