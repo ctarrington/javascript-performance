@@ -40,16 +40,12 @@ export default function SimpleMap() {
       if (!data || !dataLayer.current || dataLayer.current === undefined) {
         return;
       }
-      console.log("dataLayer", dataLayer.current);
-      console.log("itemLayerMap", itemLayerMap.current);
-      console.log("data", data);
 
       data.features.forEach((feature) => {
         const { id } = feature.properties;
-        console.log("feature", id);
         const updatedData = { ...feature };
         updatedData.geometry.coordinates[0] =
-          updatedData.geometry.coordinates[0] + 0.5;
+          updatedData.geometry.coordinates[0] + 0.1;
         const oldItemLayer = itemLayerMap.current[id];
         if (oldItemLayer) {
           dataLayer.current?.removeLayer(oldItemLayer);
@@ -64,7 +60,7 @@ export default function SimpleMap() {
   }, [data]);
 
   useEffect(() => {
-    map.current = L.map("map").setView([20.87, 10.475], 8);
+    map.current = L.map("map").setView([20.87, 10.475], 2);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
