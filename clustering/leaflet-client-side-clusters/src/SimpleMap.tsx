@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
-import L, { GeoJSON, Map } from "leaflet";
+import L, { GeoJSON, Layer, Map } from "leaflet";
+
+interface LayerMap {
+  [key: string]: Layer;
+}
 
 const fetchData = async () => {
   const result = await fetch(
@@ -25,12 +29,39 @@ export default function SimpleMap() {
   const [data, setData] = useState(null);
   const map = useRef<Map>(undefined);
   const dataLayer = useRef<GeoJSON>(undefined);
-
-  console.log("data", data);
+  const itemLayerMap = useRef<LayerMap>({});
 
   useEffect(() => {
     fetchData().then((data) => setData(data));
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!data || !dataLayer.current || dataLayer.current === undefined) {
+        return;
+      }
+      console.log("dataLayer", dataLayer.current);
+      console.log("itemLayerMap", itemLayerMap.current);
+      console.log("data", data);
+
+      data.features.forEach((feature) => {
+        const { id } = feature.properties;
+        console.log("feature", id);
+        const updatedData = { ...feature };
+        updatedData.geometry.coordinates[0] =
+          updatedData.geometry.coordinates[0] + 0.5;
+        const oldItemLayer = itemLayerMap.current[id];
+        if (oldItemLayer) {
+          dataLayer.current?.removeLayer(oldItemLayer);
+          dataLayer.current?.addData(updatedData);
+        }
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [data]);
 
   useEffect(() => {
     map.current = L.map("map").setView([20.87, 10.475], 8);
@@ -49,7 +80,12 @@ export default function SimpleMap() {
 
   useEffect(() => {
     if (data && map.current) {
-      dataLayer.current = L.geoJSON(data, { pointToLayer }).addTo(map.current);
+      dataLayer.current = L.geoJSON(data, {
+        pointToLayer,
+        onEachFeature: (feature, layer) => {
+          itemLayerMap.current[feature.properties.id] = layer;
+        },
+      }).addTo(map.current);
     }
 
     return () => {

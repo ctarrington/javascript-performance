@@ -1,12 +1,12 @@
-import './App.css'
-import SimpleMap from './SimpleMap'
+import "./App.css";
+import SimpleMap from "./SimpleMap";
 
 function App() {
   return (
-      <div className="App">
-        <SimpleMap />
-      </div>
-  )
+    <div className="App">
+      <SimpleMap />
+    </div>
+  );
 }
 
-export default App
+export default App;
