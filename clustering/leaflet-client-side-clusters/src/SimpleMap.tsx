@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import L, { GeoJSON, Layer, Map } from "leaflet";
+import {} from "leaflet.markercluster";
 
 interface LayerMap {
   [key: string]: Layer;
@@ -26,38 +27,34 @@ const pointToLayer = (feature: any, latlng: L.LatLng) => {
 };
 
 export default function SimpleMap() {
-  const [data, setData] = useState(null);
+  const [tick, setTick] = useState(Date.now());
+  const data = useRef<any>(undefined);
   const map = useRef<Map>(undefined);
   const dataLayer = useRef<GeoJSON>(undefined);
+  const clusterLayer = useRef<any>(undefined);
   const itemLayerMap = useRef<LayerMap>({});
 
   useEffect(() => {
-    fetchData().then((data) => setData(data));
+    fetchData().then((rawData) => (data.current = rawData));
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!data || !dataLayer.current || dataLayer.current === undefined) {
+      if (!data.current) {
         return;
       }
 
-      data.features.forEach((feature) => {
-        const { id } = feature.properties;
-        const updatedData = { ...feature };
-        updatedData.geometry.coordinates[0] =
-          updatedData.geometry.coordinates[0] + 0.1;
-        const oldItemLayer = itemLayerMap.current[id];
-        if (oldItemLayer) {
-          dataLayer.current?.removeLayer(oldItemLayer);
-          dataLayer.current?.addData(updatedData);
-        }
+      data.current.features.forEach((feature) => {
+        feature.geometry.coordinates[0] = feature.geometry.coordinates[0] + 0.1;
       });
+
+      setTick(Date.now());
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     map.current = L.map("map").setView([20.87, 10.475], 2);
@@ -75,21 +72,24 @@ export default function SimpleMap() {
   }, []);
 
   useEffect(() => {
-    if (data && map.current) {
-      dataLayer.current = L.geoJSON(data, {
+    clusterLayer.current = L.markerClusterGroup();
+    if (data.current && map.current) {
+      dataLayer.current = L.geoJSON(data.current, {
         pointToLayer,
         onEachFeature: (feature, layer) => {
           itemLayerMap.current[feature.properties.id] = layer;
         },
-      }).addTo(map.current);
+      }).addTo(clusterLayer.current);
+
+      map.current.addLayer(clusterLayer.current);
     }
 
     return () => {
-      if (dataLayer.current) {
-        dataLayer.current.remove();
+      if (clusterLayer.current) {
+        clusterLayer.current.remove();
       }
     };
-  }, [data]);
+  }, [tick]);
 
   return <div id="map" style={{ height: "100vh" }}></div>;
 }
