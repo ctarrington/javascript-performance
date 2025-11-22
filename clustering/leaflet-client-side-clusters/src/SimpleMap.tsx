@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L, { GeoJSON, Layer, Map } from "leaflet";
-import {} from "leaflet.markercluster";
+import "leaflet.markercluster";
 
 interface LayerMap {
   [key: string]: Layer;
@@ -16,7 +18,7 @@ const fetchData = async () => {
 
 const pointToLayer = (feature: any, latlng: L.LatLng) => {
   const options = {
-    radius: feature.properties.felt ? 3 : 1,
+    radius: feature.properties.felt ? 5 : 3,
     fillColor: feature.properties.tsunami ? "blue" : "orange",
     color: "#000",
     weight: 1,
@@ -27,7 +29,7 @@ const pointToLayer = (feature: any, latlng: L.LatLng) => {
 };
 
 export default function SimpleMap() {
-  const [tick, setTick] = useState(Date.now());
+  const [tick, setTick] = useState(0);
   const data = useRef<any>(undefined);
   const map = useRef<Map>(undefined);
   const dataLayer = useRef<GeoJSON>(undefined);
@@ -76,9 +78,6 @@ export default function SimpleMap() {
     if (data.current && map.current) {
       dataLayer.current = L.geoJSON(data.current, {
         pointToLayer,
-        onEachFeature: (feature, layer) => {
-          itemLayerMap.current[feature.properties.id] = layer;
-        },
       }).addTo(clusterLayer.current);
 
       map.current.addLayer(clusterLayer.current);
