@@ -2,43 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import L, { GeoJSON, Layer, Map } from "leaflet";
+import L, {Map} from "leaflet";
 import "leaflet.markercluster";
 
-interface LayerMap {
-  [key: string]: Layer;
-}
+import {createSymetricData, LatLonArray} from "./dataFactory.ts";
 
-const fetchData = async () => {
-  const result = await fetch(
-    "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson",
-  );
-  return await result.json();
-};
-
-const pointToLayer = (feature: any, latlng: L.LatLng) => {
-  const options = {
-    radius: feature.properties.felt ? 5 : 3,
-    fillColor: feature.properties.tsunami ? "blue" : "orange",
-    color: "#000",
-    weight: 1,
-    opacity: 1,
-    fillOpacity: 0.8,
-  };
-  return L.circleMarker(latlng, options);
+const markerOptions = {
+  radius: 5,
+  fillColor: "orange",
+  color: "#000",
+  weight: 1,
+  opacity: 1,
+  fillOpacity: 0.8,
 };
 
 export default function SimpleMap() {
   const [tick, setTick] = useState(0);
-  const data = useRef<any>(undefined);
+  const data = useRef<LatLonArray>(createSymetricData(10000, 10, 0, 40, -170, -100));
   const map = useRef<Map>(undefined);
-  const dataLayer = useRef<GeoJSON>(undefined);
   const clusterLayer = useRef<any>(undefined);
-  const itemLayerMap = useRef<LayerMap>({});
-
-  useEffect(() => {
-    fetchData().then((rawData) => (data.current = rawData));
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -46,8 +28,8 @@ export default function SimpleMap() {
         return;
       }
 
-      data.current.features.forEach((feature) => {
-        feature.geometry.coordinates[0] = feature.geometry.coordinates[0] + 0.1;
+      data.current.forEach((latLon: [number, number]) => {
+        latLon[0] += 0.1;
       });
 
       setTick(Date.now());
@@ -75,11 +57,9 @@ export default function SimpleMap() {
 
   useEffect(() => {
     clusterLayer.current = L.markerClusterGroup();
-    if (data.current && map.current) {
-      dataLayer.current = L.geoJSON(data.current, {
-        pointToLayer,
-      }).addTo(clusterLayer.current);
-
+    if (map.current && data.current.length > 0) {
+      const markers = data.current.map((latLon) => L.circleMarker(latLon, markerOptions));
+      clusterLayer.current.addLayers(markers);
       map.current.addLayer(clusterLayer.current);
     }
 
