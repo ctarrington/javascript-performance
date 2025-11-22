@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import L, {Map} from "leaflet";
+import L, { Map } from "leaflet";
 import "leaflet.markercluster";
 
-import {createSymetricData, LatLonArray} from "./dataFactory.ts";
+import { createSymetricData, type LatLonArray } from "./dataFactory.ts";
 
 const markerOptions = {
   radius: 5,
@@ -16,11 +16,18 @@ const markerOptions = {
   fillOpacity: 0.8,
 };
 
+// Results on MacBook Pro M1
+// 10k fine
+// 20k ok ish, some lag
+// 30k pretty bad, lag on pan
+
 export default function SimpleMap() {
   const [tick, setTick] = useState(0);
-  const data = useRef<LatLonArray>(createSymetricData(10000, 10, 0, 40, -170, -100));
+  const data = useRef<LatLonArray>(
+    createSymetricData(20_000, 10, 0, 40, -170, -100),
+  );
   const map = useRef<Map>(undefined);
-  const clusterLayer = useRef<any>(undefined);
+  const clusterLayer = useRef<L.MarkerClusterGroup>(undefined);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,7 +65,9 @@ export default function SimpleMap() {
   useEffect(() => {
     clusterLayer.current = L.markerClusterGroup();
     if (map.current && data.current.length > 0) {
-      const markers = data.current.map((latLon) => L.circleMarker(latLon, markerOptions));
+      const markers = data.current.map((latLon) =>
+        L.circleMarker(latLon, markerOptions),
+      );
       clusterLayer.current.addLayers(markers);
       map.current.addLayer(clusterLayer.current);
     }
