@@ -38,6 +38,13 @@ self.onmessage = (event: MessageEvent<any>) => {
       superCluster.getClusters(event.data.bbox, event.data.zoom),
     );
     console.log("QQQ gcw refreshClusters");
+  } else if (event.data.getClusterExpansionZoom) {
+    postMessage({
+      expansionZoom: superCluster.getClusterExpansionZoom(
+        event.data.getClusterExpansionZoom,
+      ),
+      center: event.data.center,
+    });
   } else {
     self.postMessage(
       superCluster.getClusters(event.data.bbox, event.data.zoom),

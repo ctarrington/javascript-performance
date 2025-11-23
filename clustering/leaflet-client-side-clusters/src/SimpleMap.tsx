@@ -18,8 +18,12 @@ export default function SimpleMap() {
 
   useEffect(() => {
     worker.current.onmessage = (evt) => {
-      markers.current?.clearLayers();
-      markers.current?.addData(evt.data);
+      if (evt.data.expansionZoom) {
+        map.current?.flyTo(evt.data.center, evt.data.expansionZoom);
+      } else {
+        markers.current?.clearLayers();
+        markers.current?.addData(evt.data);
+      }
     };
   }, []);
 
@@ -39,6 +43,14 @@ export default function SimpleMap() {
       pointToLayer: createClusterIcon,
     }).addTo(map.current);
 
+    markers.current.on("click", (e) => {
+      if (e.layer.feature.properties.cluster_id) {
+        worker.current.postMessage({
+          getClusterExpansionZoom: e.layer.feature.properties.cluster_id,
+          center: e.latlng,
+        });
+      }
+    });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -95,7 +107,7 @@ export default function SimpleMap() {
   return <div id="map" style={{ height: "100vh" }}></div>;
 }
 
-function createClusterIcon(feature, latlng) {
+function createClusterIcon(feature, latlng: [number, number]) {
   if (!feature.properties.cluster) return L.marker(latlng);
 
   const count = feature.properties.point_count;
