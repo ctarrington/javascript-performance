@@ -3,12 +3,12 @@ import Supercluster from "supercluster";
 import type { AnyProps, PointFeature } from "supercluster";
 
 const latLonArray: LatLonArray = createSymetricData(
-  500_000,
+  1_000_000,
   10,
-  20,
-  60,
-  -150,
   -70,
+  70,
+  -120,
+  120,
 );
 
 let superCluster: Supercluster;
@@ -31,7 +31,7 @@ self.onmessage = (event: MessageEvent<any>) => {
       log: false,
       radius: 60,
       extent: 256,
-      maxZoom: 17,
+      maxZoom: 7,
     }).load(features);
 
     self.postMessage({
