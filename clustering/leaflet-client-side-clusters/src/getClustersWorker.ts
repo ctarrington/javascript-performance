@@ -3,7 +3,7 @@ import Supercluster from "supercluster";
 import type { AnyProps, PointFeature } from "supercluster";
 
 const latLonArray: LatLonArray = createSymetricData(
-  100_000,
+  500_000,
   10,
   20,
   60,
@@ -28,27 +28,32 @@ self.onmessage = (event: MessageEvent<any>) => {
       };
     });
     superCluster = new Supercluster({
-      log: true,
+      log: false,
       radius: 60,
       extent: 256,
       maxZoom: 17,
     }).load(features);
 
-    self.postMessage(
-      superCluster.getClusters(event.data.bbox, event.data.zoom),
-    );
+    self.postMessage({
+      message: "refreshed",
+      content: superCluster.getClusters(event.data.bbox, event.data.zoom),
+    });
     console.log("QQQ gcw refreshClusters");
-  } else if (event.data.getClusterExpansionZoom) {
+  } else if (event.data.clusterId) {
     postMessage({
-      expansionZoom: superCluster.getClusterExpansionZoom(
-        event.data.getClusterExpansionZoom,
-      ),
-      center: event.data.center,
+      message: "expansion",
+      content: {
+        expansionZoom: superCluster.getClusterExpansionZoom(
+          event.data.clusterId,
+        ),
+        center: event.data.center,
+      },
     });
   } else {
-    self.postMessage(
-      superCluster.getClusters(event.data.bbox, event.data.zoom),
-    );
+    self.postMessage({
+      message: "moved",
+      content: superCluster.getClusters(event.data.bbox, event.data.zoom),
+    });
     console.log("QQQ gcw updateClusters");
   }
 };

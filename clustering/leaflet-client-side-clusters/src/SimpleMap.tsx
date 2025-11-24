@@ -5,24 +5,28 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L, { GeoJSON, Map } from "leaflet";
 import "leaflet.markercluster";
 
+const worker = new Worker(new URL("./getClustersWorker.ts", import.meta.url), {
+  type: "module",
+});
+
 export default function SimpleMap() {
   const [tick, setTick] = useState(0);
-  const worker = useRef(
-    new Worker(new URL("./getClustersWorker.ts", import.meta.url), {
-      type: "module",
-    }),
-  );
   const map = useRef<Map>(undefined);
   const markers = useRef<GeoJSON>(undefined);
-  const clusterLayer = useRef<L.MarkerClusterGroup>(undefined);
+  const lastRefresh = useRef(0);
 
   useEffect(() => {
-    worker.current.onmessage = (evt) => {
-      if (evt.data.expansionZoom) {
-        map.current?.flyTo(evt.data.center, evt.data.expansionZoom);
+    worker.onmessage = (evt) => {
+      const { content, message } = evt.data;
+      if (content.expansionZoom) {
+        map.current?.flyTo(content.center, content.expansionZoom);
       } else {
         markers.current?.clearLayers();
-        markers.current?.addData(evt.data);
+        markers.current?.addData(content);
+      }
+
+      if (message === "refreshed") {
+        lastRefresh.current = Date.now();
       }
     };
   }, []);
@@ -30,7 +34,7 @@ export default function SimpleMap() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTick(Date.now());
-    }, 10_000);
+    }, 1_000);
 
     return () => {
       clearInterval(interval);
@@ -45,8 +49,8 @@ export default function SimpleMap() {
 
     markers.current.on("click", (e) => {
       if (e.layer.feature.properties.cluster_id) {
-        worker.current.postMessage({
-          getClusterExpansionZoom: e.layer.feature.properties.cluster_id,
+        worker.postMessage({
+          clusterId: e.layer.feature.properties.cluster_id,
           center: e.latlng,
         });
       }
@@ -62,7 +66,7 @@ export default function SimpleMap() {
       }
 
       const bounds = map.current.getBounds();
-      worker.current.postMessage({
+      worker.postMessage({
         command: "update",
         bbox: [
           bounds.getWest(),
@@ -85,8 +89,13 @@ export default function SimpleMap() {
     if (map.current === undefined) {
       return;
     }
+
+    if (Date.now() - lastRefresh.current < 10_000) {
+      return;
+    }
+
     const bounds = map.current.getBounds();
-    worker.current.postMessage({
+    worker.postMessage({
       command: "refreshClusters",
       bbox: [
         bounds.getWest(),
@@ -96,12 +105,6 @@ export default function SimpleMap() {
       ],
       zoom: map.current.getZoom(),
     });
-
-    return () => {
-      if (clusterLayer.current) {
-        clusterLayer.current.remove();
-      }
-    };
   }, [tick]);
 
   return <div id="map" style={{ height: "100vh" }}></div>;
