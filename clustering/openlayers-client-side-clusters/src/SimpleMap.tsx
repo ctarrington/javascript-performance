@@ -11,6 +11,8 @@ import CircleStyle from "ol/style/Circle";
 import {Text, Stroke, Style} from "ol/style";
 import {fromLonLat, toLonLat} from "ol/proj";
 import type {PointFeature} from "supercluster";
+import Select from 'ol/interaction/Select';
+import {click} from 'ol/events/condition';
 
 const worker = new Worker(new URL("./getClustersWorker.ts", import.meta.url), {
     type: "module",
@@ -60,49 +62,65 @@ export default function SimpleMap() {
     const clusterVectorLayer = useRef<VectorLayer<VectorSource>>(undefined);
 
     useEffect(() => {
-            worker.onmessage = (evt) => {
-                const {content, message} = evt.data;
-                if (content.expansionZoom) {
-                    //map.current?.flyTo(content.center, content.expansionZoom);
-                } else {
-                    if (clusterVectorLayer.current) {
-                        map.current?.removeLayer(clusterVectorLayer.current);
-                        clusterVectorLayer.current = undefined;
-                    }
-
-                    const features = content.map((feature: PointFeature<GeoJSON>) => {
-                        const convertedFeature = {...feature};
-                        convertedFeature.geometry.coordinates = fromLonLat(feature.geometry.coordinates);
-                        return convertedFeature;
-                    })
-
-                    const geoJsonObject = {
-                        type: "FeatureCollection",
-                        crs: {type: "name", properties: {name: "EPSG:3857"}},
-                        features,
-                    };
-
-                    const vectorSource = new VectorSource({
-                        features: new GeoJSON().readFeatures(geoJsonObject),
-                    });
-
-                    clusterVectorLayer.current = new VectorLayer({
-                        source: vectorSource,
-                        style: styleFunction,
-                    });
-
-                    map.current?.addLayer(clusterVectorLayer.current);
-
+        worker.onmessage = (evt) => {
+            const {content, message} = evt.data;
+            if (content.expansionZoom) {
+                map.current?.getView().setCenter(fromLonLat(content.center));
+                map.current?.getView().setZoom(content.expansionZoom);
+            } else {
+                if (clusterVectorLayer.current) {
+                    map.current?.removeLayer(clusterVectorLayer.current);
+                    clusterVectorLayer.current = undefined;
                 }
+
+                const features = content.map((feature: PointFeature<GeoJSON>) => {
+                    const convertedFeature = {...feature};
+                    convertedFeature.geometry.coordinates = fromLonLat(feature.geometry.coordinates);
+                    return convertedFeature;
+                })
+
+                const geoJsonObject = {
+                    type: "FeatureCollection",
+                    crs: {type: "name", properties: {name: "EPSG:3857"}},
+                    features,
+                };
+
+                const vectorSource = new VectorSource({
+                    features: new GeoJSON().readFeatures(geoJsonObject),
+                });
+
+                clusterVectorLayer.current = new VectorLayer({
+                    source: vectorSource,
+                    style: styleFunction,
+                });
+
+                map.current?.addLayer(clusterVectorLayer.current);
+
+                const clusterSelect = new Select({
+                    layers: [clusterVectorLayer.current],
+                    condition: click,
+                });
+
+                map.current?.addInteraction(clusterSelect);
+
+                clusterSelect.on('select', (e) => {
+                    const selectedFeatures = e.target.getFeatures();
+                    if (selectedFeatures.getLength() > 0) {
+                        const feature = selectedFeatures.item(0);
+                        const clusterId = feature.get('cluster_id');
+                        const center = toLonLat(feature.getGeometry().getCoordinates());
+                        if (clusterId !== undefined) {
+                            worker.postMessage({clusterId, center});
+                        }
+                    }
+                });
 
                 if (message === "refreshed") {
                     lastRefresh.current = Date.now();
                 }
             }
-            ;
-        }, []
-    )
-    ;
+        }
+    }, []);
 
     useEffect(() => {
         map.current = new Map({
