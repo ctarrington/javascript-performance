@@ -18,11 +18,13 @@ self.onmessage = (event: MessageEvent<any>) => {
   const deltaSeconds = (performance.now() - startTime) / 1000;
   if (event.data.command === "refreshClusters") {
     const features: PointFeature<AnyProps>[] = latLonArray.map((latLon) => {
+      const lon = latLon[1] + deltaSeconds * 0.1;
+      const adjustedLon = lon > 180 ? -180 : lon;
       return {
         type: "Feature",
         geometry: {
           type: "Point",
-          coordinates: [latLon[1] + deltaSeconds * 0.1, latLon[0]],
+          coordinates: [adjustedLon, latLon[0]],
         },
         properties: {},
       };
