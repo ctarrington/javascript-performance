@@ -8,23 +8,50 @@ import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
 import {OSM} from "ol/source";
 import CircleStyle from "ol/style/Circle";
-import {Stroke, Style} from "ol/style";
-import {fromLonLat} from "ol/proj";
+import {Text, Stroke, Style} from "ol/style";
+import {fromLonLat, toLonLat} from "ol/proj";
+import type {PointFeature} from "supercluster";
 
 const worker = new Worker(new URL("./getClustersWorker.ts", import.meta.url), {
     type: "module",
 });
 
 
-const styleFunction = function () {
+const styleFunction = function (feature) {
+    const radius = feature.get('point_count_abbreviated') ? 20 : 5;
     return new Style({
         image: new CircleStyle({
-            radius: 5,
+            radius: radius,
             fill: undefined,
             stroke: new Stroke({color: 'red', width: 1})
-        })
+        }),
+        text: new Text({
+            text: feature.get('point_count_abbreviated') ?? '',
+        }),
     });
 };
+
+const extractBoundsAndZoom = (view: View) => {
+    const currentResolution = view.getResolution();
+    if (currentResolution === undefined) {
+        return undefined;
+    }
+
+    const superClusterZoom = Math.floor(view.getZoomForResolution(currentResolution) as number);
+    const bounds = view.getViewStateAndExtent().extent;
+    const convertedSW = toLonLat([bounds[0], bounds[1]]);
+    const convertedNE = toLonLat([bounds[2], bounds[3]]);
+
+    return {
+        bbox: [
+            convertedSW[0],
+            convertedSW[1],
+            convertedNE[0],
+            convertedNE[1],
+        ],
+        zoom: superClusterZoom,
+    };
+}
 
 export default function SimpleMap() {
     const [tick, setTick] = useState(0);
@@ -43,7 +70,7 @@ export default function SimpleMap() {
                         clusterVectorLayer.current = undefined;
                     }
 
-                    const features = content.map((feature) => {
+                    const features = content.map((feature: PointFeature<GeoJSON>) => {
                         const convertedFeature = {...feature};
                         convertedFeature.geometry.coordinates = fromLonLat(feature.geometry.coordinates);
                         return convertedFeature;
@@ -89,6 +116,23 @@ export default function SimpleMap() {
             })
         });
 
+        map.current.on('moveend', () => {
+            if (map.current === undefined) {
+                return;
+            }
+
+            const {bbox, zoom} = extractBoundsAndZoom(map.current.getView()) ?? {};
+            if (bbox === undefined || zoom === undefined) {
+                return;
+            }
+
+            worker.postMessage({
+                command: "update",
+                bbox,
+                zoom,
+            });
+        })
+
         return () => {
             map.current?.setTarget(undefined);
             map.current?.getLayers().clear();
@@ -115,16 +159,15 @@ export default function SimpleMap() {
             return;
         }
 
-        const bounds = map.current.getView().getViewStateAndExtent().extent;
+        const {bbox, zoom} = extractBoundsAndZoom(map.current.getView()) ?? {};
+        if (bbox === undefined || zoom === undefined) {
+            return;
+        }
+
         worker.postMessage({
             command: "refreshClusters",
-            bbox: [
-                bounds[0],
-                bounds[1],
-                bounds[2],
-                bounds[3],
-            ],
-            zoom: map.current.getView().getZoom(),
+            bbox,
+            zoom,
         });
     }, [tick]);
 
