@@ -20,6 +20,7 @@ const options = {
 };
 
 export const createViewer = (containerId: string) => {
-    return new Viewer(containerId, options);
+    const viewer = new Viewer(containerId, options);
+    return viewer;
 
 };
