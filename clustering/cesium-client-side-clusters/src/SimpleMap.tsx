@@ -43,6 +43,14 @@ export default function SimpleMap() {
 
                     const entities = geoJsonDataSourceRef.current?.entities.values;
                     entities?.forEach((entity) => {
+                        if (entity.billboard) {
+                            const svgString = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="red"/></svg>';
+                            const svgDataUri = 'data:image/svg+xml;base64,' + btoa(svgString);
+                            entity.billboard.image = svgDataUri;
+                            entity.billboard.width = 24;
+                            entity.billboard.height = 24;
+
+                        }
                     });
                 } else if (event.data.message === "expansion") {
                     console.log("QQQ sm received expansion zoom", event.data.content.expansionZoom);
