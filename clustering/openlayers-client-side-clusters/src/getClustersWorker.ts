@@ -34,7 +34,7 @@ self.onmessage = (event: MessageEvent<any>) => {
             log: false,
             radius: 60,
             extent: 256,
-            maxZoom: 12,
+            maxZoom: 7,
         }).load(features);
 
         self.postMessage({
