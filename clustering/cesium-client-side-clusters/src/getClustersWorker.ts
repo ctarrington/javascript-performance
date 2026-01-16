@@ -40,7 +40,6 @@ self.onmessage = (event: MessageEvent<any>) => {
             message: "refreshed",
             content: superCluster.getClusters(event.data.bbox, event.data.zoom),
         });
-        console.log("QQQ gcw refreshClusters");
     } else if (event.data.clusterId) {
         postMessage({
             message: "expansion",
@@ -56,6 +55,5 @@ self.onmessage = (event: MessageEvent<any>) => {
             message: "moved",
             content: superCluster.getClusters(event.data.bbox, event.data.zoom),
         });
-        console.log("QQQ gcw updateClusters");
     }
 };
