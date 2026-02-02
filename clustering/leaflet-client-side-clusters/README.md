@@ -21,7 +21,7 @@ sudo podman run -d \
   --restart unless-stopped \
   lscr.io/linuxserver/chrome:latest    
 
-in host browser, go to https://localhost:3001
+in host browser, go to https://localhost:3000
 
 in vnc browser inside the browser, go to http://host.containers.internal:8080/    
  
