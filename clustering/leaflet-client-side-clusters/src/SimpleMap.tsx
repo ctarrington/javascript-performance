@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import L, { GeoJSON, Map } from "leaflet";
+import L, { GeoJSON, LatLng, Map } from "leaflet";
 import "leaflet.markercluster";
+import type { Feature } from "geojson";
 
 const worker = new Worker(new URL("./getClustersWorker.ts", import.meta.url), {
   type: "module",
@@ -110,8 +111,8 @@ export default function SimpleMap() {
   return <div id="map" style={{ height: "100vh" }}></div>;
 }
 
-function createClusterIcon(feature, latlng: [number, number]) {
-  if (!feature.properties.cluster) return L.marker(latlng);
+function createClusterIcon(feature: Feature, latlng: LatLng) {
+  if (!feature.properties?.cluster) return L.marker(latlng);
 
   const count = feature.properties.point_count;
   const size = count < 100 ? "small" : count < 1000 ? "medium" : "large";
