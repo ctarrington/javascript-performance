@@ -6,6 +6,30 @@ import L, { GeoJSON, LatLng, Map } from "leaflet";
 import "leaflet.markercluster";
 import type { Feature } from "geojson";
 
+import { createSymetricData, type LatLonArray } from "./dataFactory.ts";
+
+const latLonArray: LatLonArray = createSymetricData(
+  100,
+  10,
+  -70,
+  70,
+  -120,
+  120,
+);
+
+const features = latLonArray.map((latLon) => {
+  const lon = latLon[1];
+  const adjustedLon = lon > 180 ? -180 : lon;
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [adjustedLon, latLon[0]],
+    },
+    properties: {},
+  };
+});
+
 export default function SimpleMap() {
   const map = useRef<Map>(undefined);
   const markers = useRef<GeoJSON>(undefined);
@@ -16,21 +40,30 @@ export default function SimpleMap() {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map.current);
+
+    markers.current = L.geoJSON(null, {
+      pointToLayer: createClusterIcon,
+    }).addTo(map.current);
+
+    markers.current.addData(features);
+    return () => {
+      if (map.current) {
+        map.current.remove();
+      }
+    };
   }, []);
 
   return <div id="map" style={{ height: "100vh" }}></div>;
 }
 
 function createClusterIcon(feature: Feature, latlng: LatLng) {
-  if (!feature.properties?.cluster) return L.marker(latlng);
-
-  const count = feature.properties.point_count;
-  const size = count < 100 ? "small" : count < 1000 ? "medium" : "large";
   const icon = L.divIcon({
-    html: `<div><span>${feature.properties.point_count_abbreviated}</span></div>`,
-    className: `marker-cluster marker-cluster-${size}`,
+    html: `<div><span>hi</div>`,
+    className: `marker-cluster`,
     iconSize: L.point(40, 40),
   });
 
-  return L.marker(latlng, { icon });
+  const marker = L.marker(latlng, { icon });
+  marker.on('mouseout', () => console.log('mouse out'));
+  return marker;
 }

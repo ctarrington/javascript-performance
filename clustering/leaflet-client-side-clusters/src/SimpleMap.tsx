@@ -112,7 +112,13 @@ export default function SimpleMap() {
 }
 
 function createClusterIcon(feature: Feature, latlng: LatLng) {
-  if (!feature.properties?.cluster) return L.marker(latlng);
+  if (!feature.properties?.cluster) {
+    const marker = L.marker(latlng);
+    marker.on('mouseover', () => console.log('mouse over'));
+    marker.on('mouseout', () => console.log('mouse out'));
+
+    return marker;
+  }
 
   const count = feature.properties.point_count;
   const size = count < 100 ? "small" : count < 1000 ? "medium" : "large";
