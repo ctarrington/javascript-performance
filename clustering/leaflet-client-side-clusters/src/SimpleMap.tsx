@@ -14,6 +14,7 @@ export default function SimpleMap() {
   const [tick, setTick] = useState(0);
   const map = useRef<Map>(undefined);
   const markers = useRef<GeoJSON>(undefined);
+  const hulls = useRef<any>(undefined);
   const lastRefresh = useRef(0);
 
   useEffect(() => {
@@ -24,6 +25,12 @@ export default function SimpleMap() {
       } else {
         markers.current?.clearLayers();
         markers.current?.addData(content);
+
+        hulls.current?.clearLayers();
+
+        const firstHull = content[0].properties.hull;
+        const hullPolygon = L.polygon(firstHull);
+        hullPolygon.addTo(hulls.current);
       }
 
       if (message === "refreshed") {
@@ -47,6 +54,8 @@ export default function SimpleMap() {
     markers.current = L.geoJSON(null, {
       pointToLayer: createClusterIcon,
     }).addTo(map.current);
+
+    hulls.current = L.layerGroup().addTo(map.current);
 
     markers.current.on("click", (e) => {
       if (e.layer.feature.properties.cluster_id) {
@@ -114,8 +123,8 @@ export default function SimpleMap() {
 function createClusterIcon(feature: Feature, latlng: LatLng) {
   if (!feature.properties?.cluster) {
     const marker = L.marker(latlng);
-    marker.on('mouseover', () => console.log('mouse over'));
-    marker.on('mouseout', () => console.log('mouse out'));
+    marker.on("mouseover", () => console.log("mouse over"));
+    marker.on("mouseout", () => console.log("mouse out"));
 
     return marker;
   }
