@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-editable'
+import 'leaflet-path-transform'
 
 const STORAGE_KEY = 'editable-features'
 
@@ -13,6 +14,28 @@ function assignId(layer: L.Layer) {
   gl.feature ??= { type: 'Feature', properties: {}, geometry: null! }
   gl.feature.properties ??= {}
   gl.feature.properties.id = crypto.randomUUID()
+}
+
+function tagRectangle(layer: L.Layer) {
+  const gl = layer as GeoJSONLayer
+  gl.feature ??= { type: 'Feature', properties: {}, geometry: null! }
+  gl.feature.properties ??= {}
+  gl.feature.properties.shapeType = 'rectangle'
+}
+
+function isRectangle(layer: L.Layer): boolean {
+  return (layer as GeoJSONLayer).feature?.properties?.shapeType === 'rectangle'
+}
+
+function toggleTransform(path: L.Path) {
+  if (path.transform?.enabled()) {
+    path.transform.disable()
+  } else {
+    if (!path.transform) {
+      path.transform = new L.Handler.PathTransform(path)
+    }
+    path.transform.enable({ rotation: true, scaling: true })
+  }
 }
 
 function SimpleMap() {
@@ -39,7 +62,12 @@ function SimpleMap() {
 
     const attachListeners = (layer: L.Layer) => {
       layer.on('editable:vertex:dragend editable:vertex:deleted', save)
-      layer.on('click', () => layer.enableEdit())
+      if (isRectangle(layer)) {
+        layer.on('transformed', save)
+        layer.on('click', () => toggleTransform(layer as L.Path))
+      } else {
+        layer.on('click', () => layer.enableEdit())
+      }
     }
 
     // Restore saved features
@@ -60,6 +88,7 @@ function SimpleMap() {
     map.on('editable:drawing:commit', (e: L.LeafletEvent) => {
       const layer = (e as L.LeafletEvent & { layer: L.Layer }).layer
       assignId(layer)
+      if (layer instanceof L.Rectangle) tagRectangle(layer)
       drawnLayersRef.current.add(layer)
       attachListeners(layer)
       save()
@@ -78,6 +107,7 @@ function SimpleMap() {
         <button onClick={() => mapRef.current?.editTools.startPolyline()}>Line</button>
         <button onClick={() => mapRef.current?.editTools.startPolygon()}>Polygon</button>
         <button onClick={() => mapRef.current?.editTools.startMarker()}>Marker</button>
+        <button onClick={() => mapRef.current?.editTools.startRectangle()}>Rectangle</button>
       </div>
       <div ref={containerRef} className="map" />
     </>

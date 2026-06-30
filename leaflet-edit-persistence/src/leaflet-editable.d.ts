@@ -9,6 +9,7 @@ declare module 'leaflet' {
     startPolyline(): L.Polyline
     startPolygon(): L.Polygon
     startMarker(): L.Marker
+    startRectangle(): L.Rectangle
     stopDrawing(): void
   }
 
