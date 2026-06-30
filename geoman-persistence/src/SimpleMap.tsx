@@ -7,6 +7,14 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 const STORAGE_KEY = 'geoman-features'
 
 type VectorLayer = (L.Path | L.Marker) & { toGeoJSON(): GeoJSON.Feature }
+type GeoJSONLayer = L.Layer & { feature: GeoJSON.Feature }
+
+function assignId(layer: L.Layer) {
+  const gl = layer as GeoJSONLayer
+  gl.feature ??= { type: 'Feature', properties: {}, geometry: null! }
+  gl.feature.properties ??= {}
+  gl.feature.properties.id = crypto.randomUUID()
+}
 
 function saveFeatures(map: L.Map) {
   const features = map.pm.getGeomanLayers()
@@ -52,6 +60,7 @@ function SimpleMap() {
     restoreFeatures(map, save)
 
     map.on('pm:create', ({ layer }) => {
+      assignId(layer)
       layer.on('pm:edit pm:dragend', save)
       save()
     })
