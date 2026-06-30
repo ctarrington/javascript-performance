@@ -27,6 +27,66 @@ function isRectangle(layer: L.Layer): boolean {
   return (layer as GeoJSONLayer).feature?.properties?.shapeType === 'rectangle'
 }
 
+function getCentroid(layer: L.Layer): L.LatLng {
+  if (layer instanceof L.Marker) return layer.getLatLng()
+  if (layer instanceof L.Polyline) return layer.getBounds().getCenter()
+  return L.latLng(0, 0)
+}
+
+function applyDelta(
+  latlngs: L.LatLng[] | L.LatLng[][],
+  dlat: number,
+  dlng: number,
+): L.LatLng[] | L.LatLng[][] {
+  if (latlngs.length > 0 && Array.isArray(latlngs[0])) {
+    return (latlngs as L.LatLng[][]).map(ring =>
+      ring.map(ll => L.latLng(ll.lat + dlat, ll.lng + dlng)),
+    )
+  }
+  return (latlngs as L.LatLng[]).map(ll => L.latLng(ll.lat + dlat, ll.lng + dlng))
+}
+
+function translateLayer(layer: L.Layer, dlat: number, dlng: number) {
+  if (layer instanceof L.Marker) {
+    const ll = layer.getLatLng()
+    layer.setLatLng(L.latLng(ll.lat + dlat, ll.lng + dlng))
+  } else if (layer instanceof L.Polyline) {
+    layer.setLatLngs(applyDelta(layer.getLatLngs() as L.LatLng[] | L.LatLng[][], dlat, dlng))
+  }
+}
+
+const centerIcon = L.divIcon({
+  className: 'center-handle',
+  html: '⊕',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+})
+
+function addCenterHandle(layer: L.Layer, map: L.Map, save: () => void): L.Marker {
+  const handle = L.marker(getCentroid(layer), {
+    icon: centerIcon,
+    draggable: true,
+    zIndexOffset: 1000,
+  }).addTo(map)
+
+  let prev = getCentroid(layer)
+
+  handle.on('dragstart', () => { prev = handle.getLatLng() })
+
+  handle.on('drag', () => {
+    const curr = handle.getLatLng()
+    translateLayer(layer, curr.lat - prev.lat, curr.lng - prev.lng)
+    prev = curr
+  })
+
+  handle.on('dragend', () => {
+    handle.setLatLng(getCentroid(layer))
+    save()
+  })
+
+  return handle
+}
+
 function toggleTransform(path: L.Path) {
   if (path.transform?.enabled()) {
     path.transform.disable()
@@ -60,10 +120,19 @@ function SimpleMap() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(features))
     }
 
-    const attachListeners = (layer: L.Layer) => {
-      layer.on('editable:vertex:dragend editable:vertex:deleted', save)
+    const setupLayer = (layer: L.Layer) => {
+      const handle = addCenterHandle(layer, map, save)
+
+      layer.on('editable:vertex:dragend editable:vertex:deleted', () => {
+        handle.setLatLng(getCentroid(layer))
+        save()
+      })
+
       if (isRectangle(layer)) {
-        layer.on('transformed', save)
+        layer.on('transformed', () => {
+          handle.setLatLng(getCentroid(layer))
+          save()
+        })
         layer.on('click', () => toggleTransform(layer as L.Path))
       } else {
         layer.on('click', () => layer.enableEdit())
@@ -78,7 +147,7 @@ function SimpleMap() {
         L.geoJSON(features).eachLayer(layer => {
           layer.addTo(map)
           drawnLayersRef.current.add(layer)
-          attachListeners(layer)
+          setupLayer(layer)
         })
       } catch {
         localStorage.removeItem(STORAGE_KEY)
@@ -90,7 +159,7 @@ function SimpleMap() {
       assignId(layer)
       if (layer instanceof L.Rectangle) tagRectangle(layer)
       drawnLayersRef.current.add(layer)
-      attachListeners(layer)
+      setupLayer(layer)
       save()
     })
 
