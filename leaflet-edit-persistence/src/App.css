@@ -1,0 +1,19 @@
+.App {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  background: white;
+  border-bottom: 1px solid #ccc;
+  z-index: 1000;
+}
+
+.map {
+  flex: 1;
+}
