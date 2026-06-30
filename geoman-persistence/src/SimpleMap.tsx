@@ -4,6 +4,33 @@ import 'leaflet/dist/leaflet.css'
 import '@geoman-io/leaflet-geoman-free'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
+const STORAGE_KEY = 'geoman-features'
+
+type VectorLayer = (L.Path | L.Marker) & { toGeoJSON(): GeoJSON.Feature }
+
+function saveFeatures(map: L.Map) {
+  const features = map.pm.getGeomanLayers()
+    .filter((layer): layer is VectorLayer =>
+      layer instanceof L.Path || layer instanceof L.Marker
+    )
+    .map(layer => layer.toGeoJSON())
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(features))
+}
+
+function restoreFeatures(map: L.Map, onChange: () => void) {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (!saved) return
+  try {
+    const features = JSON.parse(saved) as GeoJSON.Feature[]
+    L.geoJSON(features).eachLayer(layer => {
+      layer.addTo(map)
+      layer.on('pm:edit pm:dragend', onChange)
+    })
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
 function SimpleMap() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -11,16 +38,28 @@ function SimpleMap() {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
-    mapRef.current = L.map(containerRef.current).setView([39.5, -98.35], 4)
+    const map = L.map(containerRef.current).setView([39.5, -98.35], 4)
+    mapRef.current = map
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(mapRef.current)
+    }).addTo(map)
 
-    mapRef.current.pm.addControls({ position: 'topleft' })
+    map.pm.addControls({ position: 'topleft' })
+
+    const save = () => saveFeatures(map)
+
+    restoreFeatures(map, save)
+
+    map.on('pm:create', ({ layer }) => {
+      layer.on('pm:edit pm:dragend', save)
+      save()
+    })
+    map.on('pm:remove', save)
+    map.on('pm:cut', save)
 
     return () => {
-      mapRef.current?.remove()
+      map.remove()
       mapRef.current = null
     }
   }, [])
