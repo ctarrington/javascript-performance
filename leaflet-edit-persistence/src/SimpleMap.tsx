@@ -23,12 +23,21 @@ function tagRectangle(layer: L.Layer) {
   gl.feature.properties.shapeType = 'rectangle'
 }
 
+function tagCircle(layer: L.Circle) {
+  const gl = layer as GeoJSONLayer
+  gl.feature ??= { type: 'Feature', properties: {}, geometry: null! }
+  gl.feature.properties ??= {}
+  gl.feature.properties.shapeType = 'circle'
+  gl.feature.properties.radius = layer.getRadius()
+}
+
 function isRectangle(layer: L.Layer): boolean {
   return (layer as GeoJSONLayer).feature?.properties?.shapeType === 'rectangle'
 }
 
 function getCentroid(layer: L.Layer): L.LatLng {
   if (layer instanceof L.Marker) return layer.getLatLng()
+  if (layer instanceof L.CircleMarker) return layer.getLatLng() // catches L.Circle too
   if (layer instanceof L.Polyline) return layer.getBounds().getCenter()
   return L.latLng(0, 0)
 }
@@ -47,7 +56,8 @@ function applyDelta(
 }
 
 function translateLayer(layer: L.Layer, dlat: number, dlng: number) {
-  if (layer instanceof L.Marker) {
+  if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+    // L.Circle extends L.CircleMarker — both use getLatLng/setLatLng
     const ll = layer.getLatLng()
     layer.setLatLng(L.latLng(ll.lat + dlat, ll.lng + dlng))
   } else if (layer instanceof L.Polyline) {
@@ -116,7 +126,14 @@ function SimpleMap() {
     const save = () => {
       const features = Array.from(drawnLayersRef.current)
         .filter((l): l is VectorLayer => l instanceof L.Path || l instanceof L.Marker)
-        .map(l => l.toGeoJSON())
+        .map(l => {
+          // Keep radius current in properties so toGeoJSON includes it
+          if (l instanceof L.Circle) {
+            const gl = l as GeoJSONLayer
+            if (gl.feature?.properties) gl.feature.properties.radius = l.getRadius()
+          }
+          return l.toGeoJSON()
+        })
       localStorage.setItem(STORAGE_KEY, JSON.stringify(features))
     }
 
@@ -144,7 +161,14 @@ function SimpleMap() {
     if (saved) {
       try {
         const features = JSON.parse(saved) as GeoJSON.Feature[]
-        L.geoJSON(features).eachLayer(layer => {
+        L.geoJSON(features, {
+          pointToLayer: (feature, latlng) => {
+            if (feature.properties?.shapeType === 'circle') {
+              return L.circle(latlng, { radius: feature.properties.radius as number })
+            }
+            return L.marker(latlng)
+          },
+        }).eachLayer(layer => {
           layer.addTo(map)
           drawnLayersRef.current.add(layer)
           setupLayer(layer)
@@ -158,6 +182,7 @@ function SimpleMap() {
       const layer = (e as L.LeafletEvent & { layer: L.Layer }).layer
       assignId(layer)
       if (layer instanceof L.Rectangle) tagRectangle(layer)
+      else if (layer instanceof L.Circle) tagCircle(layer)
       drawnLayersRef.current.add(layer)
       setupLayer(layer)
       save()
@@ -177,6 +202,7 @@ function SimpleMap() {
         <button onClick={() => mapRef.current?.editTools.startPolygon()}>Polygon</button>
         <button onClick={() => mapRef.current?.editTools.startMarker()}>Marker</button>
         <button onClick={() => mapRef.current?.editTools.startRectangle()}>Rectangle</button>
+        <button onClick={() => mapRef.current?.editTools.startCircle()}>Circle</button>
       </div>
       <div ref={containerRef} className="map" />
     </>

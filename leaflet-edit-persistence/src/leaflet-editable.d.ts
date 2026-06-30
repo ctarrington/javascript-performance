@@ -10,6 +10,7 @@ declare module 'leaflet' {
     startPolygon(): L.Polygon
     startMarker(): L.Marker
     startRectangle(): L.Rectangle
+    startCircle(): L.Circle
     stopDrawing(): void
   }
 
